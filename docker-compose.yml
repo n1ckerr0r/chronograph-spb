@@ -1,0 +1,41 @@
+# Имена и пароли потом нужно будет заменить
+# Нужно дописать сервим для фронта
+# также нужно дописать health чеки
+services:
+  postgres:
+    image: postgis/postgis:15-3.3
+    container_name: chronograph_postgres
+    environment:
+      POSTGRES_DB: chronograph
+      POSTGRES_USER: chronograph
+      POSTGRES_PASSWORD: chronograph
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/migrations:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U chronograph -d chronograph"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    restart: unless-stopped
+  backend:
+    build: ./backend
+    container_name: chronograph_backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: chronograph
+      DB_PASSWORD: chronograph
+      DB_NAME: chronograph
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
