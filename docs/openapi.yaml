@@ -1,0 +1,734 @@
+openapi: 3.0.3
+info:
+  title: Chronograph SPB API
+  version: 0.1.0
+  description: API for historical Saint Petersburg locations, events, tags, sources, media, and map GeoJSON.
+servers:
+  - url: http://localhost:8080
+    description: Local Docker Compose backend
+tags:
+  - name: Health
+  - name: Locations
+  - name: Events
+  - name: Tags
+  - name: Sources
+  - name: Media
+  - name: Map
+paths:
+  /health:
+    get:
+      tags: [Health]
+      summary: Check API and database availability
+      responses:
+        "200":
+          description: API and database are healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Health"
+        "503":
+          $ref: "#/components/responses/Error"
+
+  /api/locations:
+    get:
+      tags: [Locations]
+      summary: List locations
+      responses:
+        "200":
+          description: Ordered location list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Location"
+    post:
+      tags: [Locations]
+      summary: Create a location
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LocationInput"
+      responses:
+        "201":
+          description: Created location
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Location"
+        "400":
+          $ref: "#/components/responses/Error"
+
+  /api/locations/{id}:
+    parameters:
+      - $ref: "#/components/parameters/ID"
+    get:
+      tags: [Locations]
+      summary: Get a location
+      responses:
+        "200":
+          description: Location
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Location"
+        "404":
+          $ref: "#/components/responses/Error"
+    put:
+      tags: [Locations]
+      summary: Update a location
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LocationInput"
+      responses:
+        "200":
+          description: Updated location
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Location"
+        "400":
+          $ref: "#/components/responses/Error"
+        "404":
+          $ref: "#/components/responses/Error"
+    delete:
+      tags: [Locations]
+      summary: Delete a location
+      responses:
+        "204":
+          description: Location deleted
+        "404":
+          $ref: "#/components/responses/Error"
+
+  /api/events:
+    get:
+      tags: [Events]
+      summary: List events
+      parameters:
+        - name: from
+          in: query
+          description: Start filter as YYYY or YYYY-MM-DD
+          schema:
+            type: string
+            example: "1700"
+        - name: to
+          in: query
+          description: End filter as YYYY or YYYY-MM-DD
+          schema:
+            type: string
+            example: "1917"
+        - name: tag
+          in: query
+          schema:
+            type: string
+            example: основание
+        - name: q
+          in: query
+          description: Case-insensitive search in title and description
+          schema:
+            type: string
+        - name: location_id
+          in: query
+          schema:
+            type: integer
+            format: int64
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 100
+            maximum: 500
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: Event list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Event"
+        "400":
+          $ref: "#/components/responses/Error"
+    post:
+      tags: [Events]
+      summary: Create an event
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EventInput"
+      responses:
+        "201":
+          description: Created event
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Event"
+        "400":
+          $ref: "#/components/responses/Error"
+
+  /api/events/{id}:
+    parameters:
+      - $ref: "#/components/parameters/ID"
+    get:
+      tags: [Events]
+      summary: Get an event
+      responses:
+        "200":
+          description: Event
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Event"
+        "404":
+          $ref: "#/components/responses/Error"
+    put:
+      tags: [Events]
+      summary: Update an event
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EventInput"
+      responses:
+        "200":
+          description: Updated event
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Event"
+        "400":
+          $ref: "#/components/responses/Error"
+        "404":
+          $ref: "#/components/responses/Error"
+    delete:
+      tags: [Events]
+      summary: Delete an event
+      responses:
+        "204":
+          description: Event deleted
+        "404":
+          $ref: "#/components/responses/Error"
+
+  /api/events/{id}/media:
+    parameters:
+      - $ref: "#/components/parameters/ID"
+    get:
+      tags: [Media]
+      summary: List event media
+      responses:
+        "200":
+          description: Event media list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Media"
+    post:
+      tags: [Media]
+      summary: Add media to an event
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MediaInput"
+      responses:
+        "201":
+          description: Created media
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Media"
+        "400":
+          $ref: "#/components/responses/Error"
+        "404":
+          $ref: "#/components/responses/Error"
+
+  /api/events/{id}/sources:
+    parameters:
+      - $ref: "#/components/parameters/ID"
+    get:
+      tags: [Sources]
+      summary: List sources linked to an event
+      responses:
+        "200":
+          description: Source list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Source"
+
+  /api/events/{id}/sources/{source_id}:
+    parameters:
+      - $ref: "#/components/parameters/ID"
+      - name: source_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+    post:
+      tags: [Sources]
+      summary: Link a source to an event
+      responses:
+        "204":
+          description: Source linked
+        "404":
+          $ref: "#/components/responses/Error"
+    delete:
+      tags: [Sources]
+      summary: Unlink a source from an event
+      responses:
+        "204":
+          description: Source unlinked
+
+  /api/tags:
+    get:
+      tags: [Tags]
+      summary: List tags
+      responses:
+        "200":
+          description: Tag list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Tag"
+    post:
+      tags: [Tags]
+      summary: Create or return a tag
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TagInput"
+      responses:
+        "201":
+          description: Created or existing tag
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Tag"
+        "400":
+          $ref: "#/components/responses/Error"
+
+  /api/tags/{id}:
+    parameters:
+      - $ref: "#/components/parameters/ID"
+    put:
+      tags: [Tags]
+      summary: Update a tag
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TagInput"
+      responses:
+        "200":
+          description: Updated tag
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Tag"
+        "400":
+          $ref: "#/components/responses/Error"
+        "404":
+          $ref: "#/components/responses/Error"
+    delete:
+      tags: [Tags]
+      summary: Delete a tag
+      responses:
+        "204":
+          description: Tag deleted
+        "404":
+          $ref: "#/components/responses/Error"
+
+  /api/sources:
+    get:
+      tags: [Sources]
+      summary: List sources
+      responses:
+        "200":
+          description: Source list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Source"
+    post:
+      tags: [Sources]
+      summary: Create a source
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SourceInput"
+      responses:
+        "201":
+          description: Created source
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Source"
+        "400":
+          $ref: "#/components/responses/Error"
+
+  /api/sources/{id}:
+    parameters:
+      - $ref: "#/components/parameters/ID"
+    get:
+      tags: [Sources]
+      summary: Get a source
+      responses:
+        "200":
+          description: Source
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Source"
+        "404":
+          $ref: "#/components/responses/Error"
+    put:
+      tags: [Sources]
+      summary: Update a source
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SourceInput"
+      responses:
+        "200":
+          description: Updated source
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Source"
+        "400":
+          $ref: "#/components/responses/Error"
+        "404":
+          $ref: "#/components/responses/Error"
+    delete:
+      tags: [Sources]
+      summary: Delete a source
+      responses:
+        "204":
+          description: Source deleted
+        "404":
+          $ref: "#/components/responses/Error"
+
+  /api/media/{id}:
+    parameters:
+      - $ref: "#/components/parameters/ID"
+    delete:
+      tags: [Media]
+      summary: Delete media
+      responses:
+        "204":
+          description: Media deleted
+        "404":
+          $ref: "#/components/responses/Error"
+
+  /api/map/events.geojson:
+    get:
+      tags: [Map]
+      summary: Get events as GeoJSON FeatureCollection
+      parameters:
+        - name: from
+          in: query
+          schema:
+            type: string
+            example: "1700"
+        - name: to
+          in: query
+          schema:
+            type: string
+            example: "1917"
+        - name: tag
+          in: query
+          schema:
+            type: string
+        - name: q
+          in: query
+          schema:
+            type: string
+        - name: location_id
+          in: query
+          schema:
+            type: integer
+            format: int64
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 100
+            maximum: 500
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: GeoJSON FeatureCollection
+          content:
+            application/geo+json:
+              schema:
+                $ref: "#/components/schemas/GeoJSONFeatureCollection"
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GeoJSONFeatureCollection"
+        "400":
+          $ref: "#/components/responses/Error"
+
+components:
+  parameters:
+    ID:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int64
+  responses:
+    Error:
+      description: Error response
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+  schemas:
+    Health:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          example: ok
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+    LocationInput:
+      type: object
+      required: [name, latitude, longitude]
+      properties:
+        name:
+          type: string
+          example: Петропавловская крепость
+        description:
+          type: string
+          example: Исторический центр основания Санкт-Петербурга
+        latitude:
+          type: number
+          format: double
+          minimum: -90
+          maximum: 90
+          example: 59.95
+        longitude:
+          type: number
+          format: double
+          minimum: -180
+          maximum: 180
+          example: 30.3167
+    Location:
+      allOf:
+        - $ref: "#/components/schemas/LocationInput"
+        - type: object
+          required: [id, created_at, updated_at]
+          properties:
+            id:
+              type: integer
+              format: int64
+            created_at:
+              type: string
+              format: date-time
+            updated_at:
+              type: string
+              format: date-time
+    EventInput:
+      type: object
+      required: [title, date_from]
+      properties:
+        title:
+          type: string
+          example: Основание Санкт-Петербурга
+        description:
+          type: string
+          example: Начало строительства города на Заячьем острове
+        date_from:
+          type: string
+          format: date
+          example: "1703-05-27"
+        date_to:
+          type: string
+          format: date
+          nullable: true
+        location_id:
+          type: integer
+          format: int64
+          nullable: true
+          example: 1
+        tags:
+          type: array
+          items:
+            type: string
+          example: [основание, XVIII век]
+    Event:
+      allOf:
+        - $ref: "#/components/schemas/EventInput"
+        - type: object
+          required: [id, location_name, tags, created_at, updated_at]
+          properties:
+            id:
+              type: integer
+              format: int64
+            location_name:
+              type: string
+              example: Петропавловская крепость
+            latitude:
+              type: number
+              format: double
+              nullable: true
+            longitude:
+              type: number
+              format: double
+              nullable: true
+            created_at:
+              type: string
+              format: date-time
+            updated_at:
+              type: string
+              format: date-time
+    TagInput:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          example: архитектура
+    Tag:
+      allOf:
+        - $ref: "#/components/schemas/TagInput"
+        - type: object
+          required: [id]
+          properties:
+            id:
+              type: integer
+              format: int64
+    SourceInput:
+      type: object
+      required: [title]
+      properties:
+        title:
+          type: string
+          example: Архивный источник
+        author:
+          type: string
+          example: ЦГИА СПб
+        year:
+          type: integer
+          nullable: true
+          example: 1900
+        url:
+          type: string
+          example: https://example.test/source
+        type:
+          $ref: "#/components/schemas/SourceType"
+    Source:
+      allOf:
+        - $ref: "#/components/schemas/SourceInput"
+        - type: object
+          required: [id]
+          properties:
+            id:
+              type: integer
+              format: int64
+    SourceType:
+      type: string
+      enum: [book, article, archive, photo, map, web]
+      default: web
+    MediaInput:
+      type: object
+      required: [url]
+      properties:
+        url:
+          type: string
+          example: https://example.test/photo.jpg
+        caption:
+          type: string
+          example: Фото
+        type:
+          type: string
+          default: image
+          example: image
+    Media:
+      allOf:
+        - $ref: "#/components/schemas/MediaInput"
+        - type: object
+          required: [id, event_id]
+          properties:
+            id:
+              type: integer
+              format: int64
+            event_id:
+              type: integer
+              format: int64
+    GeoJSONFeatureCollection:
+      type: object
+      required: [type, features]
+      properties:
+        type:
+          type: string
+          enum: [FeatureCollection]
+        features:
+          type: array
+          items:
+            $ref: "#/components/schemas/GeoJSONFeature"
+    GeoJSONFeature:
+      type: object
+      required: [type, geometry, properties]
+      properties:
+        type:
+          type: string
+          enum: [Feature]
+        geometry:
+          type: object
+          required: [type, coordinates]
+          properties:
+            type:
+              type: string
+              enum: [Point]
+            coordinates:
+              type: array
+              minItems: 2
+              maxItems: 2
+              items:
+                type: number
+              example: [30.3167, 59.95]
+        properties:
+          type: object
+          additionalProperties: true
