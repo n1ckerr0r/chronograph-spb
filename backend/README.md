@@ -116,10 +116,10 @@ go run ./cmd/server
 docker compose up --build
 ```
 
-Если локальный порт PostgreSQL `5432` занят:
+По умолчанию compose публикует PostgreSQL на `55432`, чтобы не конфликтовать с локальным PostgreSQL или другими проектами на `5432`. Если этот порт тоже занят:
 
 ```bash
-POSTGRES_PORT=55432 BACKEND_PORT=28080 docker compose up -d --build postgres backend
+POSTGRES_PORT=55433 BACKEND_PORT=28080 docker compose up -d --build postgres backend
 ```
 
 ## Проверка
