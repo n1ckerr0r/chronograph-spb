@@ -6,16 +6,16 @@
 
 ## Для пользователя
 
-Откройте frontend в браузере:
-
-```text
-http://localhost:23000
-```
-
-Если проект запущен на стандартных портах, адрес будет:
+После обычного запуска откройте frontend в браузере:
 
 ```text
 http://localhost:3000
+```
+
+Если проект запущен с кастомным `FRONTEND_PORT=23000`, адрес будет:
+
+```text
+http://localhost:23000
 ```
 
 На экране есть карта Санкт-Петербурга и боковая панель с карточками.
@@ -136,13 +136,13 @@ docker compose up --build
 Frontend:   http://localhost:3000
 Backend:    http://localhost:8080
 Swagger UI: http://localhost:8081
-PostgreSQL: localhost:5432
+PostgreSQL: localhost:55432
 ```
 
-Если стандартные порты заняты, можно поднять проект на других портах:
+Если стандартные frontend/backend/swagger порты заняты, можно поднять проект на других портах:
 
 ```bash
-POSTGRES_PORT=55432 \
+POSTGRES_PORT=55433 \
 BACKEND_PORT=28080 \
 FRONTEND_PORT=23000 \
 SWAGGER_PORT=28081 \
@@ -156,7 +156,7 @@ docker compose up -d --build
 Frontend:   http://localhost:23000
 Backend:    http://localhost:28080
 Swagger UI: http://localhost:28081
-PostgreSQL: localhost:55432
+PostgreSQL: localhost:55433
 ```
 
 ## Проверка API

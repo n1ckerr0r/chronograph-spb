@@ -32,7 +32,10 @@ export type MediaItem = {
   type: string;
 };
 
-export type GeoJSONFeatureCollection = GeoJSON.FeatureCollection<GeoJSON.Point, Record<string, unknown>>;
+export type GeoJSONFeatureCollection = GeoJSON.FeatureCollection<
+  GeoJSON.Point,
+  Record<string, unknown>
+>;
 
 export type Tab = "events" | "locations";
 

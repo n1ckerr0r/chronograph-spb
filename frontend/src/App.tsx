@@ -1,26 +1,41 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { fetchEventMedia, fetchEvents, fetchEventsGeoJSON, fetchLocations, fetchTags } from "./api";
+import {
+  fetchEventMedia,
+  fetchEvents,
+  fetchEventsGeoJSON,
+  fetchLocations,
+  fetchTags,
+} from "./api";
 import { MapView } from "./MapView";
 import { SidePanel } from "./SidePanel";
-import type { EventItem, Filters, GeoJSONFeatureCollection, LocationItem, MediaItem, Tab, TagItem } from "./types";
+import type {
+  EventItem,
+  Filters,
+  GeoJSONFeatureCollection,
+  LocationItem,
+  MediaItem,
+  Tab,
+  TagItem,
+} from "./types";
 
 const initialFilters: Filters = {
   q: "",
   from: "1700",
   to: "2026",
-  tag: ""
+  tag: "",
 };
 
 const emptyGeoJSON: GeoJSONFeatureCollection = {
   type: "FeatureCollection",
-  features: []
+  features: [],
 };
 
 export function App() {
   const [events, setEvents] = useState<EventItem[]>([]);
   const [locations, setLocations] = useState<LocationItem[]>([]);
   const [tags, setTags] = useState<TagItem[]>([]);
-  const [geoJSON, setGeoJSON] = useState<GeoJSONFeatureCollection>(emptyGeoJSON);
+  const [geoJSON, setGeoJSON] =
+    useState<GeoJSONFeatureCollection>(emptyGeoJSON);
   const [filters, setFilters] = useState<Filters>(initialFilters);
   const [activeTab, setActiveTab] = useState<Tab>("events");
   const [selectedEventId, setSelectedEventId] = useState<number>();
@@ -32,13 +47,31 @@ export function App() {
 
   const selectedEvent = useMemo(
     () => events.find((event) => event.id === selectedEventId),
-    [events, selectedEventId]
+    [events, selectedEventId],
   );
 
   const selectedLocation = useMemo(
     () => locations.find((location) => location.id === selectedLocationId),
-    [locations, selectedLocationId]
+    [locations, selectedLocationId],
   );
+
+  const visibleLocations = useMemo(() => {
+    const search = filters.q.trim().toLowerCase();
+    if (!search) {
+      return locations;
+    }
+
+    const eventLocationIds = new Set(
+      events
+        .map((event) => event.location_id)
+        .filter((id): id is number => id !== undefined),
+    );
+    return locations.filter((location) => {
+      const locationText =
+        `${location.name} ${location.description}`.toLowerCase();
+      return locationText.includes(search) || eventLocationIds.has(location.id);
+    });
+  }, [events, filters.q, locations]);
 
   const query = useMemo(() => {
     const params = new URLSearchParams();
@@ -47,21 +80,30 @@ export function App() {
         params.set(key, value.trim());
       }
     });
+    // Backend поддерживает limit; UI запрашивает запас, чтобы показать весь текущий seed-набор.
     params.set("limit", "500");
     return params;
   }, [filters]);
 
+  // Справочники меняются редко, поэтому грузим их отдельно и не обновляем при каждом изменении фильтра.
   const loadDictionaryData = useCallback(async () => {
-    const [nextTags, nextLocations] = await Promise.all([fetchTags(), fetchLocations()]);
+    const [nextTags, nextLocations] = await Promise.all([
+      fetchTags(),
+      fetchLocations(),
+    ]);
     setTags(nextTags);
     setLocations(nextLocations);
   }, []);
 
+  // Список событий и GeoJSON обновляются вместе, чтобы боковая панель и карта не расходились.
   const loadEvents = useCallback(async () => {
     setLoading(true);
     setError(undefined);
     try {
-      const [nextEvents, nextGeoJSON] = await Promise.all([fetchEvents(query), fetchEventsGeoJSON(query)]);
+      const [nextEvents, nextGeoJSON] = await Promise.all([
+        fetchEvents(query),
+        fetchEventsGeoJSON(query),
+      ]);
       setEvents(nextEvents);
       setGeoJSON(nextGeoJSON);
     } catch (caught) {
@@ -76,7 +118,10 @@ export function App() {
     setError(undefined);
     try {
       await loadDictionaryData();
-      const [nextEvents, nextGeoJSON] = await Promise.all([fetchEvents(query), fetchEventsGeoJSON(query)]);
+      const [nextEvents, nextGeoJSON] = await Promise.all([
+        fetchEvents(query),
+        fetchEventsGeoJSON(query),
+      ]);
       setEvents(nextEvents);
       setGeoJSON(nextGeoJSON);
     } catch (caught) {
@@ -93,6 +138,7 @@ export function App() {
   }, [loadDictionaryData]);
 
   useEffect(() => {
+    // Debounce снижает количество запросов во время набора текста в поиске.
     const timeout = window.setTimeout(() => void loadEvents(), 250);
     return () => window.clearTimeout(timeout);
   }, [loadEvents]);
@@ -103,6 +149,7 @@ export function App() {
       return;
     }
 
+    // Старый запрос media не должен перезаписать данные после выбора другого события.
     let isActive = true;
     setMediaLoading(true);
     fetchEventMedia(selectedEventId)
@@ -133,7 +180,7 @@ export function App() {
       setSelectedEventId(id);
       setSelectedLocationId(event?.location_id);
     },
-    [events]
+    [events],
   );
 
   const selectLocation = useCallback((id: number) => {
@@ -146,8 +193,10 @@ export function App() {
       <MapView
         events={events}
         geoJSON={geoJSON}
-        locations={locations}
+        locations={visibleLocations}
+        mediaLoading={mediaLoading}
         selectedEvent={selectedEvent}
+        selectedEventMedia={selectedEventMedia}
         selectedLocation={selectedLocation}
         onSelectEvent={selectEvent}
         onSelectLocation={selectLocation}
@@ -158,13 +207,9 @@ export function App() {
         events={events}
         filters={filters}
         loading={loading}
-        locations={locations}
-        mediaLoading={mediaLoading}
+        locations={visibleLocations}
         selectedEventId={selectedEventId}
-        selectedEvent={selectedEvent}
-        selectedEventMedia={selectedEventMedia}
         selectedLocationId={selectedLocationId}
-        selectedLocation={selectedLocation}
         tags={tags}
         onChangeFilters={setFilters}
         onRefresh={() => void reloadAll()}
